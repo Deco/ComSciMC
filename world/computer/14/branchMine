@@ -1,0 +1,134 @@
+-- This work is licensed under a CC BY-NC-SA 3.0 license.
+-- http://creativecommons.org/licenses/by-nc-sa/3.0/
+-- 
+-- by Spike Padley
+--
+-- Usage: branchMine <length>
+-- Fuel goes in slot 1. Torches go in slot 2. Floor blocks (usually cobblestone) go in slot 3.
+-- Mines a trunk <length> blocks long, with an 8 block long branch, on each side, every 3 blocks, starting 2 blocks in (n=3n-1)
+ 
+-- If fuel level is less than 10, refuel
+function fuel()
+    if turtle.getFuelLevel() < 10 then
+        turtle.select(1)
+        if turtle.refuel(1) then
+            return true
+        end
+        print("Refuelling failed.")
+        return false
+    end
+end
+ 
+-- Place floor block, if there is not already one.
+function placeFloorBlock()
+    if not turtle.detectDown() then
+        turtle.select(3)
+        if turtle.placeDown() then
+            return true
+        end
+        print("Placing floor block failed.")
+        return false
+    end
+end
+
+function checkInv()
+    local bFull = true
+    local nTotalItems = 0
+    for n=1,16 do
+        local nCount = turtle.getItemCount(n)
+        if nCount == 0 then
+                bFull = false
+        end
+        nTotalItems = nTotalItems + nCount
+    end
+    if bFull then
+        error("Inventory full, halting!")
+    end
+end
+
+ 
+-- Digs and moves into a 1x2x1 (xyz) area.
+function basicDigAndMove()
+    while not turtle.forward() do
+        if not turtle.dig() then
+            turtle.attack()
+        end
+        checkInv()
+    end
+    while turtle.detectUp() do
+        turtle.digUp()
+        sleep(0.5)
+        checkInv()
+    end
+    placeFloorBlock()
+end
+ 
+-- Turn turtle 180 degrees
+function turnAround()
+    turtle.turnLeft()
+    turtle.turnLeft()
+end
+ 
+-- Place torch on floor, in front of the turtle
+function placeTorch()
+    turtle.select(2)
+    if turtle.place() then
+        return true
+    end
+    print("Placing torch failed.")
+    return false
+end
+ 
+-- This function mines a 1x2x8 (xyz) tunnel directly infront of the turtle, placing a torch near the end, and returning to start point (but in opposite orientation)
+function branch()
+    local blocksMovedSideways = 0
+    while blocksMovedSideways < 8 do
+        fuel()
+        basicDigAndMove()
+        blocksMovedSideways = blocksMovedSideways + 1
+ 
+        if blocksMovedSideways == 8 then
+            turnAround()
+            placeTorch()
+        end
+    end
+    
+    -- Back to start point (goes up to avoid the torch on floor)
+    turtle.up()
+    for i=1,8 do
+        turtle.forward()
+        blocksMovedSideways = blocksMovedSideways - 1
+    end
+    turtle.down()
+end
+ 
+-- Arguments
+local tArgs = {...}
+if #tArgs ~= 1 or tonumber(tArgs[1]) == nil or math.floor(tonumber(tArgs[1])) ~= tonumber(tArgs[1]) or tonumber(tArgs[1]) < 1 then
+    print("Usage: branchMine <length>")
+    return
+end
+ 
+local length = tonumber(tArgs[1])
+ 
+local blocksMovedForward = 0
+while blocksMovedForward < length do
+    fuel()
+    basicDigAndMove()
+    blocksMovedForward = blocksMovedForward + 1
+ 
+    -- Add torch (on floor) every 8 blocks
+    if (blocksMovedForward % 8) == 0 then
+        turnAround()
+        placeTorch()
+        turnAround()
+    end
+ 
+    -- n=3n-1
+    if (blocksMovedForward % 3) == 0 then
+        turtle.turnLeft()
+        branch()
+        branch()
+        turtle.turnRight()
+    end
+end

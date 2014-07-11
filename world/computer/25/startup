@@ -1,0 +1,26 @@
+--Prevent CTRL+T
+  os.pullEvent = os.pullEventRaw()
+
+print("Password: ")
+
+local doorSide = "right"
+local accessCode = "Zelda64"
+local debugCode = "Zelda64Debug"
+local input = read("*")
+local reboot = true
+
+if (input == passCode) then
+  print("Password Accepted")
+  redstone.setOutput(doorSide, true)
+  sleep(3)
+  redstone.setOutput(doorSide, true)
+  
+elseif (input == debugCode) then
+  print("Entering debug mode")
+  reboot = false
+  
+end
+
+if (reboot == true) then
+  os.reboot
+end        
